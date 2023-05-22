@@ -11,8 +11,9 @@ def arr_num_to_oneHot(arr):
 
 def get_data():
     (x_train, t_train), (x_test, t_test) = tf.keras.datasets.mnist.load_data()
-    x_train,t_train = shuffle_dataset(x_train,t_train)
-
+#
+    #x_train,t_train = shuffle_dataset(x_train,t_train)
+#
     x1 = x_train.reshape(x_train.shape[0], -1)[:60000]
     x2 = x_test.reshape(x_test.shape[0], -1)[:10000]
     t1 = arr_num_to_oneHot(t_train)

@@ -1,14 +1,23 @@
 from PIL import Image
 import numpy as np
+import matplotlib.pyplot as plt
 
-# 1次元配列を作成（例としてランダムな値を使用）
-array_1d = np.random.randint(0, 255, 360*360)
+def arr_to_img_and_show(arr,height,width):
+    if arr.ndim == 1:
+    # 1次元配列を2次元配列に変換
+        image_matrix = np.reshape(arr, (height, width))
+    elif arr.ndim == 2:
+        image_matrix = arr
 
-# 1次元配列を2次元配列に変換
-array_2d = array_1d.reshape((360, 360))
+    # 画像を表示
+    plt.imshow(image_matrix, cmap='gray')
+    plt.axis('off')
+    plt.show()
 
-# 2次元配列をPILイメージに変換
-image = Image.fromarray(array_2d.astype(np.uint8))
+from set_test_data import get_data
 
-# 画像を保存
-image.save('output.jpg')
+(x_train, t_train),(x_test, t_test) = get_data()
+
+print(x_train.shape[0])
+
+# arr_to_img_and_show(x_train[0],28,28)
