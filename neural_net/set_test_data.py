@@ -1,29 +1,13 @@
 import numpy as np
 import tensorflow as tf
+from function import shuffle_dataset
+
 # tensolflowからのデータの取得と整頓
 def arr_num_to_oneHot(arr):
     t = np.zeros((len(arr), 10))
     for i in range(len(arr)):
         t[i, arr[i]] = 1
     return t
-
-def shuffle_dataset(x, t):
-    """データセットのシャッフルを行う
-
-    Parameters
-    ----------
-    x : 訓練データ
-    t : 教師データ
-
-    Returns
-    -------
-    x, t : シャッフルを行った訓練データと教師データ
-    """
-    permutation = np.random.permutation(x.shape[0])
-    x = x[permutation,:] if x.ndim == 2 else x[permutation,:,:,:]
-    t = t[permutation]
-
-    return x, t
 
 def get_data():
     (x_train, t_train), (x_test, t_test) = tf.keras.datasets.mnist.load_data()

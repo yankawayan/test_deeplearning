@@ -28,6 +28,9 @@ batch_size = 10
 #weight_decay_lambda = 0 # weight decayを使用しない場合
 weight_decay_lambda = 0.1
 # ====================================================
+weight_decay = 10**np.random.uniform(-8,-4)
+lr = 10**np.random.uniform(-6,-2)
+
 
 network = MyNewralNet(
         input_size=784, hidden_size_list=[100, 100, 100, 100],
