@@ -82,9 +82,6 @@ class MyNewralNet:
     def predict(self,x):
         for layer in self.layers.values():
             x = layer.forward(x)
-#
-            self.graph_y_list.append(layer.graph_y)
-#
 
         return x
     

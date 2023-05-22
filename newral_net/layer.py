@@ -9,12 +9,6 @@ class Affine:
         self.x = None
         self.dW = None
         self.db = None
-#
-        self.graph_y = None
-    
-    def get_graph_y(self):
-        return self.graph_y_list
-# 
 
     def forward(self,x):  
         # テンソル対応

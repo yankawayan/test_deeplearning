@@ -24,10 +24,14 @@ import matplotlib.pyplot as plt
 train_iteration_num = 10
 train_size = x_train.shape[0]
 batch_size = 10
+# weight decay（荷重減衰）の設定 =======================
+#weight_decay_lambda = 0 # weight decayを使用しない場合
+weight_decay_lambda = 0.1
+# ====================================================
 
 network = MyNewralNet(
         input_size=784, hidden_size_list=[100, 100, 100, 100],
-        output_size=10)
+        output_size=10,weight_decay_lambda=weight_decay_lambda)
 
 optimizer = Momentum()
 
