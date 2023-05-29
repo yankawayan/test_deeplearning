@@ -18,6 +18,10 @@ from set_test_data import get_data
 
 (x_train, t_train),(x_test, t_test) = get_data()
 
-print(x_train.shape[0])
+# print(x_train.shape[0])
+# print(x_test.shape[0])
 
-# arr_to_img_and_show(x_train[0],28,28)
+num = np.random.randint(0, x_train.shape[0])
+indices = np.where(t_train[num] == 1)[0]
+print(indices)
+arr_to_img_and_show(x_train[num],28,28)

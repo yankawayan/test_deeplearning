@@ -2,14 +2,15 @@
 2023年5月17日時点で、
 ・計算途中にinfが発生し、学習がうまくいっていない。
 →発生箇所：おおよそ6回目の学習におけるAffineレイヤforward、そのため、おそらく行列の積部分
-
 →未解決理由：値が徐々に増加しているため、どの部分が影響しているのか不明瞭。
 学習率を0.01から0.05、0.001にしたが、学習回数を増加させると、再度infが発生。
-
 →原因考察
 重みが増加しつづけている？
 バイアスが増加し続けている？
 レイヤのパラメータに間違いが存在する？
+
+2023年5月29日
+sigmoid関数を使用し、識別ネットを作成
 
 """
 
@@ -21,7 +22,7 @@ import matplotlib.pyplot as plt
 
 (x_train, t_train),(x_test, t_test) = get_data()
 
-train_iteration_num = 10
+train_iteration_num = 5000
 train_size = x_train.shape[0]
 batch_size = 10
 # weight decay（荷重減衰）の設定 =======================
@@ -31,14 +32,15 @@ weight_decay_lambda = 0.1
 weight_decay = 10**np.random.uniform(-8,-4)
 lr = 10**np.random.uniform(-6,-2)
 
-
 network = MyNewralNet(
-        input_size=784, hidden_size_list=[100, 100, 100, 100],
+        input_size=784, hidden_size_list=[100],
+        activation='sigmoid',weight_init_std='sigmoid',
         output_size=10,weight_decay_lambda=weight_decay_lambda)
 
 optimizer = Momentum()
 
 graph_param_train_loss = []
+graph_param_train_accuracy = []
 
 #→バッチ作成→学習→勾配→精度→更新→バッチ更新→学習→・・・
 for i in range(train_iteration_num):
@@ -51,11 +53,16 @@ for i in range(train_iteration_num):
     grads = network.gradient(x_batch,t_batch)
     optimizer.update(network.params,grads)
 
-    loss = network.loss(x_batch,t_batch)
-    graph_param_train_loss.append(loss)
+    # loss = network.loss(x_batch,t_batch)
+    # graph_param_train_loss.append(loss)
+    
+    accuracy = network.accuracy(x_batch,t_batch)
+    graph_param_train_accuracy.append(accuracy*100)
+    
 
 x = np.arange(train_iteration_num)
-plt.plot(x,graph_param_train_loss,marker="o")
+#plt.plot(x,graph_param_train_loss,marker="o")
+plt.plot(x,graph_param_train_accuracy,marker="o")
 plt.show()
 
 #精度の途中経過の確認(出力部は削除済)
