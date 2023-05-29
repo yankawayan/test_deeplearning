@@ -84,46 +84,32 @@ class Convolution:
         return dx
 
 class Affine:
-    def __init__(self,W,b):
-        self.W = W
+    def __init__(self, W, b):
+        self.W =W
         self.b = b
+        
         self.x = None
+        self.original_x_shape = None
+        # 重み・バイアスパラメータの微分
         self.dW = None
         self.db = None
 
-    def forward(self,x):  
+    def forward(self, x):
         # テンソル対応
         self.original_x_shape = x.shape
         x = x.reshape(x.shape[0], -1)
         self.x = x
 
         out = np.dot(self.x, self.W) + self.b
-        #out = np.dot(x, self.W) + self.b
-#
-        if np.any(np.isnan(out)):
-            print('error in Affine forward nan')
-            #print('x:');print(x)
-            #print('W[0]:');print(self.W[0])
-            #print('b:');print(self.b)
-        if np.any(np.isinf(out)):
-            print('error in Affine forward inf')
-            #print('max x:');print(np.max(x));print('')
-        self.graph_y = np.max(x)
-            #print('W[0]:');print(self.W[0])
-            #print('b:');print(self.b)
-#
+
         return out
-    
-    def backward(self,dout):
-        dx = np.dot(dout,self.W.T)
+
+    def backward(self, dout):
+        dx = np.dot(dout, self.W.T)
         self.dW = np.dot(self.x.T, dout)
         self.db = np.sum(dout, axis=0)
-#
-        if np.any(np.isnan(dx)):
-            print('error in Affine backward nan')
-        if np.any(np.isinf(dx)):
-            print('error in Affine backward inf')
-#
+        
+        dx = dx.reshape(*self.original_x_shape)  # 入力データの形状に戻す（テンソル対応）
         return dx
     
 class Sigmoid:
@@ -177,11 +163,5 @@ class SoftmaxWithLoss:
             #dxのnp.arange(batch_size),self.tの要素を-1している。
             dx[np.arange(batch_size),self.t] -= 1
             dx = dx/batch_size
-#
-        if np.any(np.isnan(dx)):
-            print('error in SoftmaxWithLoss backward nan')
-        if np.any(np.isinf(dx)):
-            print('error in SoftmaxWithLoss backward inf')
-#
+
         return dx
-    

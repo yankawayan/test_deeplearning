@@ -60,10 +60,6 @@ class MyNewralNet:
         self.layers['Affine'+str(idx)] = Affine(self.params['W'+str(idx)],self.params['b'+str(idx)])
         self.last_layer = SoftmaxWithLoss()
 
-#
-        self.graph_y_list = []
-#
-
     def  __init_weight(self,weight_init_std):
         # sample [784, 100, 100, 100, 100, 10]
         all_size_list = [self.input_size] + self.hitdden_size_list + [self.output_size]
@@ -92,16 +88,6 @@ class MyNewralNet:
         for idx in range(1,self.hidden_layer_num+2):
             W = self.params['W'+str(idx)]
             weight_decay += 0.5*self.weight_decay_lambda*np.sum(W**2)
-#
-        #     if np.any(np.isnan(weight_decay)):
-        #         print('error in loss weight nan ')
-        #     if np.any(np.isinf(weight_decay)):
-        #         print('error in loss weight inf ')
-        # if np.any(np.isnan(self.last_layer.forward(y,t))):
-        #     print('error in loss return nan ')
-        # if np.any(np.isinf(self.last_layer.forward(y,t))):
-        #     print('error in loss return inf ')
-#
         #返り値に荷重減衰(weight_decay)を設定
         return self.last_layer.forward(y,t)+weight_decay
     #accuracy=精度
@@ -140,15 +126,5 @@ class MyNewralNet:
             #更新先の重みとバイアスのリストを所持？恐らく。
             grads['W'+str(idx)] = self.layers['Affine'+str(idx)].dW + self.weight_decay_lambda*self.layers['Affine'+str(idx)].W
             grads['b'+str(idx)] = self.layers['Affine'+str(idx)].db
-#
-            # if np.any(np.isnan(grads['W'+str(idx)])):
-            #     print('error in gradient nan ');print('W'+str(idx))
-            # if np.any(np.isnan(grads['b'+str(idx)])):
-            #     print('error in gradient nan ');print('b'+str(idx))
-            # if np.any(np.isinf(grads['W'+str(idx)])):
-            #     print('error in gradient inf ');print('W'+str(idx))
-            # if np.any(np.isinf(grads['b'+str(idx)])):
-            #     print('error in gradient inf ');print('b'+str(idx))
-#
 
         return grads
