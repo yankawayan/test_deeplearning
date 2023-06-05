@@ -1,4 +1,4 @@
-from layer import Sigmoid,Relu,Affine,SoftmaxWithLoss
+from layer import Sigmoid,Relu,Affine,SoftmaxWithLoss,BatchNormalization
 from function import numerical_gradient
 import numpy as np
 from collections import OrderedDict
@@ -39,7 +39,7 @@ class MyNewralNet:
         """
         self.input_size = input_size
         self.output_size = output_size
-        self.hitdden_size_list = hidden_size_list
+        self.hidden_size_list = hidden_size_list
         self.hidden_layer_num = len(hidden_size_list)
         self.weight_decay_lambda = weight_decay_lambda
         self.params = {}
@@ -62,9 +62,10 @@ class MyNewralNet:
 
     def  __init_weight(self,weight_init_std):
         # sample [784, 100, 100, 100, 100, 10]
-        all_size_list = [self.input_size] + self.hitdden_size_list + [self.output_size]
+        all_size_list = [self.input_size] + self.hidden_size_list + [self.output_size]
         # len(all_size_list) - 1 回の繰り返し(バイアスと重みの初期化)
         for idx in range(1, len(all_size_list)):
+            scale = weight_init_std
             #標準偏差と重みに関して
             if str(weight_init_std).lower() in ('relu', 'he'):
                 scale = np.sqrt(2.0/all_size_list[idx-1])
