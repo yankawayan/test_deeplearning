@@ -77,6 +77,16 @@ class MultiLayerNetExtend:
             self.params['W' + str(idx)] = scale * np.random.randn(all_size_list[idx-1], all_size_list[idx])
             self.params['b' + str(idx)] = np.zeros(all_size_list[idx])
 
+    def load_param(self):
+        idx = 1
+        #繰り返し方法は要改良
+        for key,layer in self.layers.items():
+            if "Affine" in key:
+                layer.W = self.params['W' + str(idx)]
+                layer.b = self.params['b' + str(idx)]
+                idx += 1
+                print("update")
+
     def predict(self, x, train_flg=False):
         for key, layer in self.layers.items():
             if "Dropout" in key or "BatchNorm" in key:
