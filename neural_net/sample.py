@@ -1,6 +1,6 @@
 import pygame
 # 画面サイズと背景色を設定
-WIDTH, HEIGHT = 28, 28
+WIDTH, HEIGHT = 900, 900
 BACKGROUND_COLOR = (255, 255, 255)  # 白色
 # 初期化
 pygame.init()
@@ -30,7 +30,7 @@ while running:
             if drawing:
                 current_pos = event.pos
                 if last_pos is not None:
-                    pygame.draw.line(screen, (0, 0, 0), last_pos, current_pos, 2)
+                    pygame.draw.line(screen, (0, 0, 0), last_pos, current_pos, 50)
                 last_pos = current_pos
 
     # 画面の更新
@@ -38,6 +38,7 @@ while running:
     clock.tick(60)  # FPSを60に設定
 
 # 画像を保存
+
 pygame.image.save(screen, "drawn_image.png")
 
 # 終了処理
