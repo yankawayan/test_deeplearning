@@ -19,7 +19,7 @@ class MultiLayerNetExtend:
         'sigmoid'または'xavier'を指定した場合は「Xavierの初期値」を設定
     weight_decay_lambda : Weight Decay（L2ノルム）の強さ
     use_dropout: Dropoutを使用するかどうか
-    dropout_ration : Dropoutの割り合い
+    dropout_ration : Dropoutの割合
     use_batchNorm: Batch Normalizationを使用するかどうか
     """
     def __init__(self, input_size, hidden_size_list, output_size,
@@ -78,14 +78,18 @@ class MultiLayerNetExtend:
             self.params['b' + str(idx)] = np.zeros(all_size_list[idx])
 
     def load_param(self):
+        """
+        自身のパラメータを各レイヤに反映(Affineレイヤのみ)
+        """
         idx = 1
+#
         #繰り返し方法は要改良
         for key,layer in self.layers.items():
             if "Affine" in key:
                 layer.W = self.params['W' + str(idx)]
                 layer.b = self.params['b' + str(idx)]
                 idx += 1
-                print("update")
+                print("loaded "+str(key))
 
     def predict(self, x, train_flg=False):
         for key, layer in self.layers.items():

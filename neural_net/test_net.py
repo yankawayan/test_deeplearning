@@ -5,6 +5,7 @@ import pickle
 from optimizer import SGD,Momentum,AdaGrad,Adam
 #from my_newral_net import MyNewralNet
 from set_test_data import get_data
+from trainer import Trainer
 
 import sys,os
 
@@ -12,6 +13,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 multi_layer_extend_path = os.path.join(parent_dir, 'net_batch_drop_weight', 'multi_layer_extend.py')
 sys.path.append(parent_dir)
+
 from net_batch_drop_weight.multi_layer_extend import MultiLayerNetExtend
 
 (x_train, t_train),(x_test, t_test) = get_data()
@@ -89,6 +91,7 @@ network.load_param()
 accuracy = network.accuracy(x_test,t_test)
 print("accuracy : ",accuracy)
 #----------------------
+
 
 
 # k = 0
