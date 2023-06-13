@@ -1,16 +1,19 @@
 import numpy as np
 import pickle
+from search_batch_size import Ba
 
 class Trainer:
     """
-    引数：network,optimizer
-    関数： 
+    引数:network,optimizer
+    関数:
         # データの読み込み用関数
          load_train_test(x_train,t_train,x_test,t_test)
         # １回学習
-         train_onece(train_itr,batch_size,ac_div,score_ac,save_flag,check_flag,loss_list_flag,ac_check)
+         train_onece(train_itr,batch_size,ac_div,score_ac,save_flag,check_flag,
+         loss_list_flag,ac_check)
         # (train_num)回学習、lrとweight_decayを設定(np.randomを使用)
-         train_multi(train_num,train_itr,batch_size,ac_div,score_ac,save_flag,check_flag,loss_list_flag,ac_check,low_lr,high_lr,low_wd,high_wd)
+         train_multi(train_num,train_itr,batch_size,ac_div,score_ac,save_flag,
+         check_flag,loss_list_flag,ac_check,low_lr,high_lr,low_wd,high_wd)
     パラメータ
         (loss_list_flagに依存)
         # １回学習時のリスト
@@ -64,7 +67,8 @@ class Trainer:
         self.train_size = x_train.shape[0]
         self.test_size = x_test.shape[0]
 
-    def train_onece(self,train_itr,batch_size,ac_div=10,score_ac=0.9,save_flag=True,check_flag=False,loss_list_flag=False,ac_check='--o'):
+    def train_onece(self,train_itr,batch_size,ac_div=10,score_ac=0.9,save_flag=True,\
+                    check_flag=False,loss_list_flag=False,ac_check='--o'):
         """
         できること：訓練の回数とバッチのサイズを指定し、学習を行う(重みとバイアスの更新をする)。
                     精度と損失関数の推移のリストを作成する。
@@ -138,7 +142,9 @@ class Trainer:
                     elif ac_check == 'num':
                         print("accuracy",i/ac_div," : ",accuracy)
 
-    def train_multi(self,train_num,train_itr,batch_size,ac_div=10,score_ac=0.9,save_flag=True,check_flag=True,loss_list_flag=False,ac_check='--o',low_lr=0.00001,high_lr=0.1,low_wd=-8,high_wd=-5):
+    def train_multi(self,train_num,train_itr,batch_size,ac_div=10,score_ac=0.9,\
+                    save_flag=True,check_flag=False,loss_list_flag=False,\
+                    ac_check='--o',low_lr=0.00001,high_lr=0.1,low_wd=-8,high_wd=-5):
         """
         できること:訓練を複数回実行
                     最適なパラメータの探索(lr,weight_decay)#隠れ層・ニューロンの数の探索は検討中
@@ -163,13 +169,42 @@ class Trainer:
             #weight_decayとlrを決定、リストへ保存、設定
             weight_decay = 10 ** np.random.uniform(low_wd,high_wd)
             self.weight_decay_list.append(weight_decay)
+            #隠れ層の変更にどう対応するか？
             self.network.weight_decay_lambda = weight_decay
             lr = np.random.uniform(low_lr,high_lr)
             self.lr_list.append(lr)
             self.optimizer.lr = lr
             #設定したパラメータで学習
-            self.train_onece(train_itr=train_itr,batch_size=batch_size,ac_div=ac_div,score_ac=score_ac,save_flag=save_flag,check_flag=check_flag,loss_list_flag=loss_list_flag,ac_check=ac_check)
+            self.train_onece(train_itr=train_itr,batch_size=batch_size,ac_div=ac_div,\
+                            score_ac=score_ac,save_flag=save_flag,\
+                            check_flag=check_flag,loss_list_flag=loss_list_flag,\
+                            ac_check=ac_check)
             #学習した精度の推移リストを保存(複数の学習結果を一つのリスト(２次元)で保存)
             self.multi_accuracy_list.append(self.accuracy_list)
             if loss_list_flag:
                 self.multi_loss_list.append(self.loss_list)
+
+    def search_part_param(self):
+        """
+        やりたいこと：一部パラメータの自動探索
+                train_itr:学習率によって回数が増減させたい。基準は精度の降下手前。
+                (異常の検知が必要な可能性アリ)
+                batch_size:おおよそ10～100
+                ac_div:訓練データの総数による。基本10程度
+                score_ac:初期の精度の中から高いものを設定、精度の上昇幅から再調整。
+        探索手順
+            output,訓練データの数からbatch_sizeの初期値を設定
+
+            lrを低い値で実行、train_itrの初期値を設定
+            lrを広範囲で実行、精度が相対的に高かったlrを選択、範囲を限定。(複数の範囲を保存)
+            score_acを設定
+            精度の下降箇所(変動幅が狭い、幅の設定方法の検討、上昇幅と比較？)からtrain_itrを再設定
+            繰り返し、再設定したlrで実行、範囲の限定
+            精度の上昇が一定回数起こらなかった場合、lrの指定範囲を変更。
+            保存した範囲のlrで目標精度を達成できなかった場合、層及びニューロンの追加。
+            層とニューロンの追加に関しては、要検討
+        batch_sizeについて
+            outputの2倍以上は欲しい。
+        """
+        batch_size = self.deci_batch_size()
+        
