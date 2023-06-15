@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 from search_batch_size import Batch_size
+from function import get_range_for_value
 
 class Trainer:
     """
@@ -50,6 +51,7 @@ class Trainer:
         self.loss_list = []
         self.accuracy_list = []
         self.max_ac = 0
+        self.lr_range = []
 
     def __init_multi_list(self):
         #複数回の学習を２次元のリストで保存
@@ -58,6 +60,7 @@ class Trainer:
         self.max_ac_list = []
         self.lr_list = []
         self.weight_decay_list = []
+        self.lr_range_list = []
 #
     #訓練データ、テストデータの読み込み(要改良)
     def load_train_test(self,x_train,t_train,x_test,t_test):
@@ -70,7 +73,7 @@ class Trainer:
 
     def train_onece(self,train_itr,batch_size,ac_div=10,score_ac=0.9,save_flag=True,\
                     check_flag=False,loss_list_flag=False,ac_check='--o',\
-                    break_flag=False,break_ac_num=5):
+                    break_flag=False,break_ac_num=5,lr_range_rank=1):
         """
         できること：訓練の回数とバッチのサイズを指定し、学習を行う(重みとバイアスの更新をする)。
                     精度と損失関数の推移のリストを作成する。
@@ -120,6 +123,9 @@ class Trainer:
                     self.max_ac = accuracy
                 #必要スコア以上の精度の時、精度数値の出力とバイナリファイルの保存
                 if accuracy > score_ac:
+                    # スコア探索用の範囲を保存
+                    if len(self.lr_range) == 0:
+                        self.lr_range = get_range_for_value(self.optimizer.lr,lr_range_rank=lr_range_rank)
                     if check_flag:
                         print(accuracy)
                     #重みとバイアスをバイナリファイルで保存
@@ -157,7 +163,8 @@ class Trainer:
     def train_multi(self,train_num,train_itr,batch_size,ac_div=10,score_ac=0.9,\
                     save_flag=True,check_flag=False,loss_list_flag=False,\
                     ac_check='--o',low_lr=0.00001,high_lr=0.1,low_wd=-8,high_wd=-5,\
-                    break_flag=False,break_ac_num=5):
+                    break_flag=False,break_ac_num=5,\
+                    lr_range_rank=2):
         """
         できること:訓練を複数回実行
                     最適なパラメータの探索(lr,weight_decay)
@@ -193,8 +200,11 @@ class Trainer:
                             score_ac=score_ac,save_flag=save_flag,\
                             check_flag=check_flag,loss_list_flag=loss_list_flag,\
                             ac_check=ac_check,\
-                            break_flag=break_flag,break_ac_num=break_ac_num)
+                            break_flag=break_flag,break_ac_num=break_ac_num,\
+                            lr_range_rank=2)
             #学習した精度の推移リストを保存(複数の学習結果を一つのリスト(２次元)で保存)
+            if len(self.lr_range) != 0:
+                self.lr_range_list.append(self.lr_range)
             self.multi_accuracy_list.append(self.accuracy_list)
             if loss_list_flag:
                 self.multi_loss_list.append(self.loss_list)
@@ -229,8 +239,15 @@ class Trainer:
         self.optimizer.lr = start_lr
         #break_flagにより、self.train_itr_numに値を代入
         self.train_onece(start_train_num,start_train_itr,self.BATCH_SIZE.num,\
-                        ac_div=start_ac_div,score_ac=start_score,\
+                        ac_div=start_ac_div,\
                         save_flag=False,break_flag=True,break_ac_num=5)
-        
-        
-                    
+        # lrの範囲を決定し、保存するために、学習を実行
+        self.train_multi(start_train_num,self.train_itr_num,\
+                        self.BATCH_SIZE.num,ac_div=start_ac_div,\
+                        score_ac=start_score,save_flag=False,\
+                        low_lr=start_lr,high_lr=0.1,lr_range_rank=1)
+        #scoreを超えた範囲を限定->scoreを再設定->実行->範囲を限定を繰り返し
+        #self.lr_range_listにある、スコア越えのリストから、更にスコアを更新してlrのリストも更新する。
+        for i in range(len(self.lr_range_list)):
+            self.train_multi(start_train_num,self.train_itr_num,\
+                             self.BATCH_SIZE.num,)
