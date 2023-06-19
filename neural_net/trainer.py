@@ -201,7 +201,7 @@ class Trainer:
                             check_flag=check_flag,loss_list_flag=loss_list_flag,\
                             ac_check=ac_check,\
                             break_flag=break_flag,break_ac_num=break_ac_num,\
-                            lr_range_rank=2)
+                            lr_range_rank=lr_range_rank)
             #学習した精度の推移リストを保存(複数の学習結果を一つのリスト(２次元)で保存)
             if len(self.lr_range) != 0:
                 self.lr_range_list.append(self.lr_range)
@@ -235,6 +235,7 @@ class Trainer:
             outputの2倍以上は欲しい。
         """
 #　クラスごとの保持パラメータについてよく考える。
+#　再帰などを使用すれば、もっと効率化できたかも。要改善。
         self.BATCH_SIZE = Batch_size(self.output_size,self.train_size)
         self.optimizer.lr = start_lr
         #break_flagにより、self.train_itr_numに値を代入
@@ -248,6 +249,9 @@ class Trainer:
                         low_lr=start_lr,high_lr=0.1,lr_range_rank=1)
         #scoreを超えた範囲を限定->scoreを再設定->実行->範囲を限定を繰り返し
         #self.lr_range_listにある、スコア越えのリストから、更にスコアを更新してlrのリストも更新する。
+        #リストをもとにscore以上のlrを探索、発見したら縮小した範囲でリストに上書き
+        #発見できなかった場合、（削除/保留）
+
         for i in range(len(self.lr_range_list)):
             self.train_multi(start_train_num,self.train_itr_num,\
                              self.BATCH_SIZE.num,)

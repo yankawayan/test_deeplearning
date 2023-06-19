@@ -1,6 +1,17 @@
 import numpy as np
 
-def get_range_for_value(value,lr_range_rank=1):
+"""
+list:
+    get_range_for_value(value,lr_range_rank=1) -> list
+    shuffle_dataset(x, t) -> tuple
+    im2col(input_data, filter_h, filter_w, stride=1, pad=0) -> np.ndarray
+    col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0) -> np.ndarray
+    softmax(x) -> float
+    cross_entropy_error(y,t) -> float
+    numerical_gradient(f,x) -> np.ndarray
+"""
+
+def get_range_for_value(value,lr_range_rank=1) -> list:
     #与えられた数値の位の最小値、一つ上の位の最小値のリストを返す。
     #小数点以下の数値の長さ
     decimal_places = str(value).split('.')[-1]
@@ -18,7 +29,7 @@ def get_range_for_value(value,lr_range_rank=1):
     current_max = round(round(value,ct+lr_range_rank)+round(0.1**(ct+lr_range_rank),ct+lr_range_rank)/2,ct+lr_range_rank+1)
     return [current_min,current_max]
 
-def shuffle_dataset(x, t):
+def shuffle_dataset(x, t) -> tuple:
     """データセットのシャッフルを行う
 
     Parameters
@@ -36,7 +47,7 @@ def shuffle_dataset(x, t):
 
     return x, t
 
-def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
+def im2col(input_data, filter_h, filter_w, stride=1, pad=0) -> np.ndarray:
     """
     Parameters
     ----------
@@ -66,7 +77,7 @@ def im2col(input_data, filter_h, filter_w, stride=1, pad=0):
     col = col.transpose(0, 4, 5, 1, 2, 3).reshape(N*out_h*out_w, -1)
     return col
 
-def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
+def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0) -> np.ndarray:
     """
 
     Parameters
@@ -96,7 +107,7 @@ def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0):
 
     return img[:, :, pad:H + pad, pad:W + pad]
 
-def softmax(x):
+def softmax(x) -> float:
     c = np.max(x)
     exp_x = np.exp(x - c)
     sum_exp_x = np.sum(exp_x)
@@ -108,7 +119,7 @@ def softmax(x):
 #
     return exp_x / sum_exp_x
 
-def cross_entropy_error(y,t):
+def cross_entropy_error(y,t) -> float:
     if y.ndim == 1:
         y = y.reshape(1,y.size)
         t = t.reshape(1,t.size)
@@ -126,7 +137,7 @@ def cross_entropy_error(y,t):
 #
     return -np.sum(np.log(y[np.arange(batch_size),t]+1e-7))/batch_size
 
-def numerical_gradient(f,x):
+def numerical_gradient(f,x) -> np.ndarray:
     h = 1e-4
     grad = np.zeros_like(x)
     #配列を反復処理するためのイテレータを作成。イテレータは配列の要素に順番にアクセスするためのオブジェクト

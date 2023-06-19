@@ -5,6 +5,15 @@ import numpy as np
 
     self.update(params,grads)
 """
+"""
+    list:
+        SGD
+        Momentum
+        AdaGrad
+        Adam
+        Nesterov
+        RMSprop
+"""
 
 class SGD:
     def __init__(self,lr=0.01):
@@ -13,12 +22,10 @@ class SGD:
     def update(self,params,grads):
         for key in params.keys():
             params[key] -= self.lr*grads[key]
-#
-            # if np.any(np.isnan(params[key])):
-            #     print('error in SGD nan ');print(str(key))
-            # if np.any(np.isinf(params[key])):
-            #     print('error in SGD inf ');print(str(key))
-#
+            if np.any(np.isnan(params[key])):
+                print('error in SGD nan ');print(str(key))
+            if np.any(np.isinf(params[key])):
+                print('error in SGD inf ');print(str(key))
 
 class Momentum:
     def __init__(self, lr=0.01, momentum=0.9):
