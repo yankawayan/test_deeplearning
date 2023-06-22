@@ -71,18 +71,19 @@ graph_ar = 10
 #     dropout_ration
 # )
 
+# activation=activation
+
 param_list = []
-
-weight_decay = 1.0868689296809225e-07
-lr = 0.012647605942127601
-#lr = 0.012647
-
-
+weight_decay = 0
 #---- ------------
-network = MultiLayerNetExtend(input_size=input_size, hidden_size_list=hidden_size_list, output_size=output_size, 
-                                        weight_init_std=weight_init_std,weight_decay_lambda=weight_decay,use_dropout=use_dropout,dropout_ration=dropout_ration, use_batchnorm=use_batchnorm)
-optimizer.lr = lr
-f = open('sc_0.9011.binaryfile','rb')
+network = MultiLayerNetExtend(input_size=input_size, hidden_size_list=hidden_size_list,\
+                            output_size=output_size,weight_init_std=weight_init_std,\
+                            weight_decay_lambda=weight_decay,use_dropout=use_dropout,\
+                            dropout_ration=dropout_ration, use_batchnorm=use_batchnorm)
+
+from arr_to_img import arr_to_img_and_show
+
+f = open('sc_09011.binaryfile','rb')
 data_saved_weight = pickle.load(f)
 #print(network.params)
 network.params = data_saved_weight
@@ -90,6 +91,11 @@ network.load_param()
 #print(network.params)
 accuracy = network.accuracy(x_test,t_test)
 print("accuracy : ",accuracy)
+print(x_test[0])
+ans_list = network.predict(x_test[0].reshape(1,784))
+ans = np.argmax(ans_list)
+print("ans : ",ans)
+arr_to_img_and_show(x_test[0],28,28)
 #----------------------
 
 

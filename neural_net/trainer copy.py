@@ -3,20 +3,6 @@ import pickle
 from search_batch_size import Batch_size
 from function import get_range_for_value
 
-"""
-Trainerクラス:
-    初期化:network,optimizer
-
-    trainer.train(x_train,t_train)
-    #データの中身について要検討
-
-やること:データの読み込み、データからnetworkの重み、バイアスの更新(更新にoptimizerを使用)
-    
-
-意識すること:
-    再利用可能にするために、最低限に。
-"""
-
 class Trainer:
     """
     引数:network,optimizer
@@ -43,6 +29,7 @@ class Trainer:
             self.weight_decay_list
     """
     def __init__(self,network,optimizer):
+        #class は　大文字 (内包する場合)
         self.network = network
         self.optimizer = optimizer
         #

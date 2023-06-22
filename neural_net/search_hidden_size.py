@@ -21,8 +21,8 @@ hidden_layer=Hidden_layer([100,50,30])
 
 input_size = 784
 output_size = 10
-activation = 'relu'
-weight_init_std = 'relu'
+activation = 'sigmoid'
+weight_init_std = 'sigmoid'
 weight_decay_lambda=0
 use_dropout = False
 dropout_ration = 0.5
