@@ -12,41 +12,46 @@ Trainerクラス
 """
 
 class Trainer:
+    """
+    引数:network,optimizer
+    関数:
+        # データの読み込み用関数
+         load_train_test(x_train,t_train,x_test,t_test)
+        # １回学習
+         train_onece(train_itr,batch_size,ac_div,score_ac,save_flag,check_flag,
+         loss_list_flag,ac_check)
+        # (train_num)回学習、lrとweight_decayを設定(np.randomを使用)
+         train_multi(train_num,train_itr,batch_size,ac_div,score_ac,save_flag,
+         check_flag,loss_list_flag,ac_check,low_lr,high_lr,low_wd,high_wd)
+    パラメータ
+        (loss_list_flagに依存)
+        # １回学習時のリスト
+            self.loss_list
+            self.accuracy_list
+            (self.optimizer.lr,
+            self.network.weight_decay_lambda)
+        # (train_num)回学習時のリスト(multiは2次元)
+            self.multi_loss_list
+            self.multi_accuracy_list
+            self.lr_list
+            self.weight_decay_list
+    """
     def __init__(self,network,optimizer):
         self.network = network
         self.optimizer = optimizer
-        self.input_size = self.network.input_size
+        #
+        self.x_train = None
+        self.t_train = None
+        self.x_test = None
+        self.t_test = None
+        self.train_size = None
+        self.test_size = None
+        #
+        self.BATCH_SIZE = None
         self.output_size = self.network.output_size
-
-        self.hyper_params = {}
-        self.__init_hyper_params()
-
-        self.lr = optimizer.lr
-        self.ac_div = 10
-        self.ac_border = 0.9
-
-    def set_hyper_param(self,param_key,param):
-        self.hyper_params[param_key] = param
-
-    def __init_hyper_params(self):
-        self.hyper_params['train_itr'] = 400
-        self.hyper_params['batch_size'] = 100
-        self.hyper_params['hidden_size_list'] = [100,50,30]
-        self.hyper_params['activation'] = 'sigmoid'
-        self.hyper_params['weight_init_std'] = 'sigmoid'
-        self.hyper_params['weight_decay_lambda'] = 0
-        #HACK:以下二つは、dropoutに関するものだから、セットにできそうならする。
-        self.hyper_params['use_dropout'] = False
-        self.hyper_params['dropout_ration'] = 0.5
-        self.hyper_params['use_batchnorm'] = False
-
-    def reinit_network(self):
-        self.network.__init__(self.input_size,self.hyper_params['hidden_size_list'], self.output_size,\
-            activation=self.hyper_params['activation'],weight_init_std=self.hyper_params['weight_init_std'],\
-            weight_decay_lambda=self.hyper_params['weight_decay_lambda'],\
-            use_dropout=self.hyper_params['use_dropout'],dropout_ration=self.hyper_params['dropout_ration'],\
-            use_batchnorm=self.hyper_params['use_batchnorm'])
-
+        self.train_itr_num = None
+        #
+        self.save_param = None
 
     def __init_once_list(self):
         #１回分の学習をリストで保存
@@ -65,7 +70,7 @@ class Trainer:
         self.lr_range_list = []
 #
     #訓練データ、テストデータの読み込み(要改良)
-    def load_data(self,x_train,t_train,x_test,t_test):
+    def load_train_test(self,x_train,t_train,x_test,t_test):
         self.x_train = x_train
         self.t_train = t_train
         self.x_test = x_test
@@ -73,7 +78,7 @@ class Trainer:
         self.train_size = x_train.shape[0]
         self.test_size = x_test.shape[0]
 
-    def train_onece(self,save_flag=True,\
+    def train_onece(self,train_itr,batch_size,ac_div=10,score_ac=0.9,save_flag=True,\
                     check_flag=False,loss_list_flag=False,ac_check='--o',\
                     break_flag=False,break_ac_num=5,lr_range_rank=1):
         """
@@ -94,10 +99,10 @@ class Trainer:
         self.__init_once_list()
         if break_flag:
             buff=0;ct=0
-        for i in range(self.train_itr):
+        for i in range(train_itr):
 #
-            #バッチを使うかどうかや、ランダムにするか否か(要検討)
-            batch_mask = np.random.choice(self.train_size, self.batch_size)
+            #バッチを使うか、ランダムにするか否か(要検討)
+            batch_mask = np.random.choice(self.train_size, batch_size)
             x_batch = self.x_train[batch_mask]
             t_batch = self.t_train[batch_mask]
 #
@@ -105,7 +110,7 @@ class Trainer:
             grads = self.network.gradient(x_batch,t_batch)
             self.optimizer.update(self.network.params,grads)
             #精度の計算と処理
-            if i % self.ac_div == 0: 
+            if i % ac_div == 0: 
                 accuracy = self.network.accuracy(self.x_test,self.t_test)
                 if break_flag:
                     if  buff < accuracy:
@@ -124,7 +129,7 @@ class Trainer:
                 if self.max_ac < accuracy:
                     self.max_ac = accuracy
                 #必要スコア以上の精度の時、精度数値の出力とバイナリファイルの保存
-                if accuracy > self.score_ac:
+                if accuracy > score_ac:
                     # スコア探索用の範囲を保存
                     if len(self.lr_range) == 0:
                         self.lr_range = get_range_for_value(self.optimizer.lr,lr_range_rank=lr_range_rank)
@@ -160,9 +165,9 @@ class Trainer:
                         length = length[:idx]+'|'+length[idx+1:]
                         print(length)
                     elif ac_check == 'num':
-                        print("accuracy",i/self.ac_div," : ",accuracy)
+                        print("accuracy",i/ac_div," : ",accuracy)
 
-    def train_multi(self,train_num,\
+    def train_multi(self,train_num,train_itr,batch_size,ac_div=10,score_ac=0.9,\
                     save_flag=True,check_flag=False,loss_list_flag=False,\
                     ac_check='--o',low_lr=0.00001,high_lr=0.1,low_wd=-8,high_wd=-5,\
                     break_flag=False,break_ac_num=5,\
@@ -198,7 +203,8 @@ class Trainer:
             self.lr_list.append(lr)
             self.optimizer.lr = lr
             #設定したパラメータで学習
-            self.train_onece(save_flag=save_flag,\
+            self.train_onece(train_itr=train_itr,batch_size=batch_size,ac_div=ac_div,\
+                            score_ac=score_ac,save_flag=save_flag,\
                             check_flag=check_flag,loss_list_flag=loss_list_flag,\
                             ac_check=ac_check,\
                             break_flag=break_flag,break_ac_num=break_ac_num,\
