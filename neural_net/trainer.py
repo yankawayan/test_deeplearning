@@ -14,14 +14,15 @@ Trainerクラス
 class Trainer:
     def __init__(self,network,optimizer):
         self.network = network
-        self.optimizer = optimizer
-        self.input_size = self.network.input_size
-        self.output_size = self.network.output_size
+        self.input_size = network.input_size
+        self.output_size = network.output_size
 
         self.hyper_params = {}
         self.__init_hyper_params()
 
+        self.optimizer = optimizer
         self.lr = optimizer.lr
+
         self.ac_div = 10
         self.ac_border = 0.9
 
@@ -46,8 +47,7 @@ class Trainer:
             weight_decay_lambda=self.hyper_params['weight_decay_lambda'],\
             use_dropout=self.hyper_params['use_dropout'],dropout_ration=self.hyper_params['dropout_ration'],\
             use_batchnorm=self.hyper_params['use_batchnorm'])
-
-
+        
     def __init_once_list(self):
         #１回分の学習をリストで保存
         self.loss_list = []
@@ -63,8 +63,7 @@ class Trainer:
         self.lr_list = []
         self.weight_decay_list = []
         self.lr_range_list = []
-#
-    #訓練データ、テストデータの読み込み(要改良)
+
     def load_data(self,x_train,t_train,x_test,t_test):
         self.x_train = x_train
         self.t_train = t_train
@@ -73,94 +72,92 @@ class Trainer:
         self.train_size = x_train.shape[0]
         self.test_size = x_test.shape[0]
 
+    def save_binary(self,accuracy):
+        save_param = self.network.params
+        f = open("sc_"+str(accuracy)+".binaryfile","wb")
+        pickle.dump(save_param,f)
+        f.close
+
+    def save_text(self,accuracy):
+        f = open("sc_"+str(accuracy)+'.txt', 'a')
+        f.write("score: "+str(accuracy)+\
+                ", weight_decay: "+str(self.network.weight_decay_lambda)+\
+                ", lr: "+str(self.optimizer.lr)+\
+                ", input_size: "+str(self.network.input_size)+\
+                ", hidden_size_list: "+str(self.network.hidden_size_list)+\
+                ", output_size: "+str(self.output_size)+\
+                ", activation: "+str(self.network.activation)+\
+                ", weight_init_std: "+str(self.network.weight_init_std)+\
+                ", use_dropout: "+str(self.network.use_dropout)+\
+                ", dropout_ration: "+str(self.network.dropout_ration)+\
+                ", use_batchnorm: "+str(self.network.use_batchnorm)+\
+                "\n")
+        f.close()
+
+    def batch_data(self):
+        batch_mask = np.random.choice(self.train_size, self.batch_size)
+        x_batch = self.x_train[batch_mask]
+        t_batch = self.t_train[batch_mask]
+        return x_batch,t_batch
+
+    def ac_process(self):
+        self.accuracy = self.network.accuracy(self.x_test,self.t_test)
+        #精度リストへの追加
+        self.accuracy_list.append(self.accuracy)
+        #損失関数の計算とリストへの追加
+        if loss_list_flag:
+            self.loss_list.append(self.network.loss(x_batch,t_batch))
+        #最大精度の更新
+        if self.max_ac < self.accuracy:
+            self.max_ac = self.accuracy
+        #必要スコア以上の精度の時、精度数値の出力とバイナリファイルの保存
+        if self.accuracy > self.score_ac:
+            # スコア探索用の範囲を保存
+            if len(self.lr_range) == 0:
+                self.lr_range = get_range_for_value(self.optimizer.lr,lr_range_rank=lr_range_rank)
+            if check_flag:
+                print(self.accuracy)
+            if save_flag:
+                self.save_binary(self.accuracy)
+                self.save_text(self.accuracy)
+        #精度のチェック(スコアに関わらず)
+        if check_flag:
+            if ac_check == '--o':
+                #精度を---------oで表現
+                length = "----------"
+                idx = int(self.accuracy*10)
+                length = length[:idx]+'|'+length[idx+1:]
+                print(length)
+            elif ac_check == 'num':
+                print("accuracy",i/self.ac_div," : ",self.accuracy)
+
+    def check_ac(self,buff,ct):
+        if  buff < self.accuracy:
+            buff = self.accuracy
+        else:
+            ct += 1
+            if ct > break_ac_num:
+                self.train_itr_num = (i+1)
+                return True
+        return False
+        
+
     def train_onece(self,save_flag=True,\
                     check_flag=False,loss_list_flag=False,ac_check='--o',\
                     break_flag=False,break_ac_num=5,lr_range_rank=1):
-        """
-        できること：訓練の回数とバッチのサイズを指定し、学習を行う(重みとバイアスの更新をする)。
-                    精度と損失関数の推移のリストを作成する。
-                    最大精度を保存する。
-                    指定した精度以上の場合の重みとバイアスを保存する。
-                    精度を表示する。(数字と図を指定)
-
-        train_itr:訓練回数
-        batch_size:バッチサイズ
-        ac_div=10:精度の計算頻度(ac_div回に1回)
-        score_ac=0.9:要求精度スコア
-        save_flag=True:重みとバイアスの保存フラグ、score_acに依存
-        check_flag=False:チェック表示フラグ、精度をターミナルで出力(数値or図)
-        loss_list_flag=False,,ac_check='--o'):精度の表示方法を選択、数値='num'、図='--o'
-        """
+        
         self.__init_once_list()
-        if break_flag:
-            buff=0;ct=0
+
+        buff=0,ct=0
         for i in range(self.train_itr):
-#
-            #バッチを使うかどうかや、ランダムにするか否か(要検討)
-            batch_mask = np.random.choice(self.train_size, self.batch_size)
-            x_batch = self.x_train[batch_mask]
-            t_batch = self.t_train[batch_mask]
-#
-            #確率的勾配降下法(要検討)
-            grads = self.network.gradient(x_batch,t_batch)
+            x_data,t_data = self.batch_data()
+            grads = self.network.gradient(x_data,t_data)
             self.optimizer.update(self.network.params,grads)
-            #精度の計算と処理
-            if i % self.ac_div == 0: 
-                accuracy = self.network.accuracy(self.x_test,self.t_test)
-                if break_flag:
-                    if  buff < accuracy:
-                        buff = accuracy
-                    else:
-                        ct += 1
-                        if ct > break_ac_num:
-                            self.train_itr_num = (i+1)
-                            break
-                #精度リストへの追加
-                self.accuracy_list.append(accuracy)
-                #損失関数の計算とリストへの追加
-                if loss_list_flag:
-                    self.loss_list.append(self.network.loss(x_batch,t_batch))
-                #最大精度の更新
-                if self.max_ac < accuracy:
-                    self.max_ac = accuracy
-                #必要スコア以上の精度の時、精度数値の出力とバイナリファイルの保存
-                if accuracy > self.score_ac:
-                    # スコア探索用の範囲を保存
-                    if len(self.lr_range) == 0:
-                        self.lr_range = get_range_for_value(self.optimizer.lr,lr_range_rank=lr_range_rank)
-                    if check_flag:
-                        print(accuracy)
-                    #重みとバイアスをバイナリファイルで保存
-                    #各パラメータをテキストデータで保存
-                    if save_flag:
-                        self.save_param = self.network.params
-                        f = open("sc_"+str(accuracy)+".binaryfile","wb")
-                        pickle.dump(self.save_param,f)
-                        f.close
-                        f = open("sc_"+str(accuracy)+'.txt', 'a')
-                        f.write("score: "+str(accuracy)+\
-                                ", weight_decay: "+str(self.network.weight_decay_lambda)+\
-                                ", lr: "+str(self.optimizer.lr)+\
-                                ", input_size: "+str(self.network.input_size)+\
-                                ", hidden_size_list: "+str(self.network.hidden_size_list)+\
-                                ", output_size: "+str(self.output_size)+\
-                                ", activation: "+str(self.network.activation)+\
-                                ", weight_init_std: "+str(self.network.weight_init_std)+\
-                                ", use_dropout: "+str(self.network.use_dropout)+\
-                                ", dropout_ration: "+str(self.network.dropout_ration)+\
-                                ", use_batchnorm: "+str(self.network.use_batchnorm)+\
-                                "\n")
-                        f.close()
-                #精度のチェック(スコアに関わらず)
-                if check_flag:
-                    if ac_check == '--o':
-                        #精度を---------oで表現
-                        length = "----------"
-                        idx = int(accuracy*10)
-                        length = length[:idx]+'|'+length[idx+1:]
-                        print(length)
-                    elif ac_check == 'num':
-                        print("accuracy",i/self.ac_div," : ",accuracy)
+
+            if i % self.ac_div == 0:
+                self.ac_process()
+                if self.check_ac(buff,ct):
+                    break
 
     def train_multi(self,train_num,\
                     save_flag=True,check_flag=False,loss_list_flag=False,\
