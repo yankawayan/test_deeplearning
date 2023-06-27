@@ -24,12 +24,15 @@ class Trainer:
         self.lr = optimizer.lr
 
         self.accuracy = None
+        self.max_accuracy = 0
         self.ac_div = 10
         self.ac_border = 0.9
 
         self.flag_save = False
         self.flag_log = False
         self.flag_interrupt = False
+
+        self.flag_list_loss = False
 
     def set_hyper_param(self,key,param):
         self.hyper_params[key] = param
@@ -55,15 +58,12 @@ class Trainer:
             use_dropout=self.hyper_params['use_dropout'],dropout_ration=self.hyper_params['dropout_ration'],\
             use_batchnorm=self.hyper_params['use_batchnorm'])
         
-    def __init_once_list(self):
-        #１回分の学習をリストで保存
-        self.loss_list = []
-        self.accuracy_list = []
-        self.max_ac = 0
-        self.lr_range = []
+    def __init_list_train_once(self):
+        self.list_loss = []
+        self.list_accuracy = []
+        self.list_lr_range = []
 
-    def __init_multi_list(self):
-        #複数回の学習を２次元のリストで保存
+    def __init_list_train_multi(self):
         self.multi_loss_list = []
         self.multi_accuracy_list = []
         self.max_ac_list = []
@@ -87,6 +87,7 @@ class Trainer:
 
     def save_text(self,accuracy):
         f = open("sc_"+str(accuracy)+'.txt', 'a')
+        #TODO:ハイパーパラメータの辞書を作成したので、それを利用する。
         f.write("score: "+str(accuracy)+\
                 ", weight_decay: "+str(self.network.weight_decay_lambda)+\
                 ", lr: "+str(self.optimizer.lr)+\
@@ -101,22 +102,19 @@ class Trainer:
                 "\n")
         f.close()
 
-    def get_batch_data(self):
+    def set_batch_data_from_train_data(self):
         batch_mask = np.random.choice(self.train_size, self.batch_size)
-        x_batch = self.x_train[batch_mask]
-        t_batch = self.t_train[batch_mask]
-        return x_batch,t_batch
+        self.x_data = self.x_train[batch_mask]
+        self.t_data = self.t_train[batch_mask]
 
     def ac_process(self):
         self.accuracy = self.network.accuracy(self.x_test,self.t_test)
-        #精度リストへの追加
         self.accuracy_list.append(self.accuracy)
-        #損失関数の計算とリストへの追加
-        if loss_list_flag:
-            self.loss_list.append(self.network.loss(x_batch,t_batch))
-        #最大精度の更新
-        if self.max_ac < self.accuracy:
-            self.max_ac = self.accuracy
+
+        if self.flag_list_loss:
+            self.list_loss.append(self.network.loss(self.x_data,self.t_data))
+        if self.max_accuracy < self.accuracy:
+            self.max_accuracy = self.accuracy
         #必要スコア以上の精度の時、精度数値の出力とバイナリファイルの保存
         if self.accuracy > self.score_ac:
             # スコア探索用の範囲を保存
@@ -153,12 +151,12 @@ class Trainer:
                     check_flag=False,loss_list_flag=False,ac_check='--o',\
                     break_flag=False,break_ac_num=5,lr_range_rank=1):
         
-        self.__init_once_list()
+        self.__init_list_train_once()
 
         buff=0,ct=0
         for i in range(self.train_itr):
-            x_data,t_data = self.get_batch_data()
-            grads = self.network.gradient(x_data,t_data)
+            self.set_batch_data_from_train_data()
+            grads = self.network.gradient(self.x_data,self.t_data)
             self.optimizer.update(self.network.params,grads)
 
             if i % self.ac_div == 0:
@@ -171,25 +169,8 @@ class Trainer:
                     ac_check='--o',low_lr=0.00001,high_lr=0.1,low_wd=-8,high_wd=-5,\
                     break_flag=False,break_ac_num=5,\
                     lr_range_rank=2):
-        """
-        できること:訓練を複数回実行
-                    最適なパラメータの探索(lr,weight_decay)
-                    #隠れ層・ニューロンの数の探索は検討中
-        train_num:学習の繰り返し回数(毎回ハイパーパラメータを変更)
-        train_itr:epoch回数(学習回数)
-        batch_size:バッチサイズ
-        score_ac=0.9:要求精度スコア
-        check_flag=True
-        loss_list_flag=False
-        # 探索用パラメータの範囲設定
-        # learning late
-        low_lr=0.00001
-        high_lr=0.1
-        # weight_decay (荷重減衰)
-        low_wd=-8
-        high_wd=-5
-        """
-        self.__init_multi_list()
+
+        self.__init_list_train_multi()
         for i in range(train_num):
 #
             #探索方法は要検討
