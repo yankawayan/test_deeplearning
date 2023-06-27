@@ -23,20 +23,27 @@ class Trainer:
         self.optimizer = optimizer
         self.lr = optimizer.lr
 
+        self.accuracy = None
         self.ac_div = 10
         self.ac_border = 0.9
 
-    def set_hyper_param(self,param_key,param):
-        self.hyper_params[param_key] = param
+        self.flag_save = False
+        self.flag_log = False
+        self.flag_interrupt = False
+
+    def set_hyper_param(self,key,param):
+        self.hyper_params[key] = param
 
     def __init_hyper_params(self):
         self.hyper_params['train_itr'] = 400
         self.hyper_params['batch_size'] = 100
-        self.hyper_params['hidden_size_list'] = [100,50,30]
+            #HACK:既に作成されたネットワークのactivationとweight_init_stdは不明
         self.hyper_params['activation'] = 'sigmoid'
         self.hyper_params['weight_init_std'] = 'sigmoid'
-        self.hyper_params['weight_decay_lambda'] = 0
-        #HACK:以下二つは、dropoutに関するものだから、セットにできそうならする。
+            #HACK:取ってくる必要性が分からない。どちらでも良いか？
+        self.hyper_params['hidden_size_list'] = self.network.hidden_size_list
+        self.hyper_params['weight_decay_lambda'] = self.network.weight_decay_lambda
+            #HACK:以下二つは、dropoutに関するものだから、セットにできそうならする。
         self.hyper_params['use_dropout'] = False
         self.hyper_params['dropout_ration'] = 0.5
         self.hyper_params['use_batchnorm'] = False
@@ -94,7 +101,7 @@ class Trainer:
                 "\n")
         f.close()
 
-    def batch_data(self):
+    def get_batch_data(self):
         batch_mask = np.random.choice(self.train_size, self.batch_size)
         x_batch = self.x_train[batch_mask]
         t_batch = self.t_train[batch_mask]
@@ -150,7 +157,7 @@ class Trainer:
 
         buff=0,ct=0
         for i in range(self.train_itr):
-            x_data,t_data = self.batch_data()
+            x_data,t_data = self.get_batch_data()
             grads = self.network.gradient(x_data,t_data)
             self.optimizer.update(self.network.params,grads)
 
