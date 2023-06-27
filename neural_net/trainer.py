@@ -23,16 +23,22 @@ class Trainer:
         self.optimizer = optimizer
         self.lr = optimizer.lr
 
-        self.accuracy = None
-        self.max_accuracy = 0
         self.ac_div = 10
         self.ac_border = 0.9
+        self.log_ac_expr = '--o'
+        self.break_num = 5
 
         self.flag_save = False
         self.flag_log = False
         self.flag_interrupt = False
 
         self.flag_list_loss = False
+
+    def __init_var(self):
+        self.accuracy = 0
+        self.max_accuracy = 0
+        self.tmp_ac = 0
+        self.ct = 0
 
     def set_hyper_param(self,key,param):
         self.hyper_params[key] = param
@@ -52,15 +58,22 @@ class Trainer:
         self.hyper_params['use_batchnorm'] = False
 
     def reinit_network(self):
-        self.network.__init__(self.input_size,self.hyper_params['hidden_size_list'], self.output_size,\
-            activation=self.hyper_params['activation'],weight_init_std=self.hyper_params['weight_init_std'],\
+        self.network.__init__(\
+            self.input_size,\
+            self.hyper_params['hidden_size_list'],\
+            self.output_size,\
+            activation=self.hyper_params['activation'],\
+            weight_init_std=self.hyper_params['weight_init_std'],\
             weight_decay_lambda=self.hyper_params['weight_decay_lambda'],\
-            use_dropout=self.hyper_params['use_dropout'],dropout_ration=self.hyper_params['dropout_ration'],\
-            use_batchnorm=self.hyper_params['use_batchnorm'])
+            use_dropout=self.hyper_params['use_dropout'],\
+            dropout_ration=self.hyper_params['dropout_ration'],\
+            use_batchnorm=self.hyper_params['use_batchnorm']\
+        )
         
     def __init_list_train_once(self):
         self.list_loss = []
         self.list_accuracy = []
+        #TODO:使用方法等、分かりやすく再構築。
         self.list_lr_range = []
 
     def __init_list_train_multi(self):
@@ -79,16 +92,16 @@ class Trainer:
         self.train_size = x_train.shape[0]
         self.test_size = x_test.shape[0]
 
-    def save_binary(self,accuracy):
+    def save_binary(self,filename):
         save_param = self.network.params
-        f = open("sc_"+str(accuracy)+".binaryfile","wb")
+        f = open(str(filename)+".binaryfile","wb")
         pickle.dump(save_param,f)
         f.close
 
-    def save_text(self,accuracy):
-        f = open("sc_"+str(accuracy)+'.txt', 'a')
+    def save_text(self,filename):
+        f = open(str(filename)+'.txt', 'a')
         #TODO:ハイパーパラメータの辞書を作成したので、それを利用する。
-        f.write("score: "+str(accuracy)+\
+        f.write("score: "+str(filename)+\
                 ", weight_decay: "+str(self.network.weight_decay_lambda)+\
                 ", lr: "+str(self.optimizer.lr)+\
                 ", input_size: "+str(self.network.input_size)+\
@@ -102,66 +115,62 @@ class Trainer:
                 "\n")
         f.close()
 
-    def set_batch_data_from_train_data(self):
-        batch_mask = np.random.choice(self.train_size, self.batch_size)
-        self.x_data = self.x_train[batch_mask]
-        self.t_data = self.t_train[batch_mask]
+    #HACK:事前にクラスにデータを読み込む必要がある。
+    def set_batch_data(self):
+        batch_mask = np.random.choice(self.train_size, self.hyper_params['batch_size'])
+        self.x_batch = self.x_train[batch_mask]
+        self.t_batch = self.t_train[batch_mask]
 
     def ac_process(self):
         self.accuracy = self.network.accuracy(self.x_test,self.t_test)
-        self.accuracy_list.append(self.accuracy)
-
+        self.list_accuracy.append(self.accuracy)
+            #HACK:損失関数の計算を含むので、必要な時だけ呼び出す。
         if self.flag_list_loss:
-            self.list_loss.append(self.network.loss(self.x_data,self.t_data))
+            self.list_loss.append(self.network.loss(self.x_batch,self.t_batch))
         if self.max_accuracy < self.accuracy:
             self.max_accuracy = self.accuracy
-        #必要スコア以上の精度の時、精度数値の出力とバイナリファイルの保存
-        if self.accuracy > self.score_ac:
-            # スコア探索用の範囲を保存
-            if len(self.lr_range) == 0:
-                self.lr_range = get_range_for_value(self.optimizer.lr,lr_range_rank=lr_range_rank)
-            if check_flag:
-                print(self.accuracy)
-            if save_flag:
+        if self.accuracy > self.ac_border:
+        #TODO:よく分からんので、分かりやすく改良する。
+            # if len(self.lr_range) == 0:
+            #     self.lr_range = get_range_for_value(self.optimizer.lr,lr_range_rank=lr_range_rank)
+            if self.flag_save:
                 self.save_binary(self.accuracy)
                 self.save_text(self.accuracy)
-        #精度のチェック(スコアに関わらず)
-        if check_flag:
-            if ac_check == '--o':
-                #精度を---------oで表現
+
+    def log_process(self):
+        if self.flag_log:
+            if self.ac_border < self.accuracy:
+                print(self.accuracy)
+            if self.log_ac_expr == '--o':
                 length = "----------"
                 idx = int(self.accuracy*10)
                 length = length[:idx]+'|'+length[idx+1:]
                 print(length)
-            elif ac_check == 'num':
-                print("accuracy",i/self.ac_div," : ",self.accuracy)
+            elif self.log_ac_expr == 'num':
+                print("accuracy : ",self.accuracy)
 
-    def check_ac(self,buff,ct):
-        if  buff < self.accuracy:
-            buff = self.accuracy
+    def _check_break_num_and_ct(self):
+        if  self.tmp_ac < self.accuracy:
+            self.tmp_ac = self.accuracy
         else:
-            ct += 1
-            if ct > break_ac_num:
-                self.train_itr_num = (i+1)
+            self.ct += 1
+            if self.break_num < self.ct:
                 return True
         return False
         
 
-    def train_onece(self,save_flag=True,\
-                    check_flag=False,loss_list_flag=False,ac_check='--o',\
-                    break_flag=False,break_ac_num=5,lr_range_rank=1):
-        
+    def train_onece(self):
+        self.__init_var()
         self.__init_list_train_once()
-
-        buff=0,ct=0
-        for i in range(self.train_itr):
-            self.set_batch_data_from_train_data()
-            grads = self.network.gradient(self.x_data,self.t_data)
+        for i in range(self.hyper_params['train_itr']):
+            self.set_batch_data()
+            grads = self.network.gradient(self.x_batch,self.t_batch)
             self.optimizer.update(self.network.params,grads)
 
             if i % self.ac_div == 0:
                 self.ac_process()
-                if self.check_ac(buff,ct):
+                self.log_process()
+                if self._check_break_num_and_ct():
                     break
 
     def train_multi(self,train_num,\
