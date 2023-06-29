@@ -100,8 +100,7 @@ class Trainer:
             self._get_range_from_value(self.accuracy)
         else:
             self.lr_ct += 1
-            
-
+        
     def load_data(self,x_train,t_train,x_test,t_test):
         self.x_train = x_train
         self.t_train = t_train
