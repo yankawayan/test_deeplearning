@@ -2,7 +2,6 @@ import numpy as np
 
 """
 list:
-    get_range_for_value(value,lr_range_rank=1) -> list
     shuffle_dataset(x, t) -> tuple
     im2col(input_data, filter_h, filter_w, stride=1, pad=0) -> np.ndarray
     col2im(col, input_shape, filter_h, filter_w, stride=1, pad=0) -> np.ndarray
@@ -10,24 +9,6 @@ list:
     cross_entropy_error(y,t) -> float
     numerical_gradient(f,x) -> np.ndarray
 """
-
-def get_range_for_value(value,lr_range_rank=1) -> list:
-    #与えられた数値の位の最小値、一つ上の位の最小値のリストを返す。
-    #小数点以下の数値の長さ
-    decimal_places = str(value).split('.')[-1]
-    #0の個数(最初の桁が小数第何位か)
-    ct = 0
-    for digit in decimal_places:
-        if digit == '0':
-            ct += 1
-        else:
-            break
-#   論理エラーに注意
-    current_min = round(round(value,ct+lr_range_rank)-round(0.1**(ct+lr_range_rank),ct+lr_range_rank)/2,ct+lr_range_rank+1)
-    if current_min < 0:
-        current_min = 0
-    current_max = round(round(value,ct+lr_range_rank)+round(0.1**(ct+lr_range_rank),ct+lr_range_rank)/2,ct+lr_range_rank+1)
-    return [current_min,current_max]
 
 def shuffle_dataset(x, t) -> tuple:
     """データセットのシャッフルを行う

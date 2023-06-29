@@ -49,7 +49,7 @@ class Trainer:
             #HACK:既に作成されたネットワークのactivationとweight_init_stdは不明
         self.hyper_params['activation'] = 'sigmoid'
         self.hyper_params['weight_init_std'] = 'sigmoid'
-            #HACK:取ってくる必要性が分からない。どちらでも良いか？
+            #HACK:リストと数値を直接代入にするかどうか。
         self.hyper_params['hidden_size_list'] = self.network.hidden_size_list
         self.hyper_params['weight_decay_lambda'] = self.network.weight_decay_lambda
             #HACK:以下二つは、dropoutに関するものだから、セットにできそうならする。
@@ -123,10 +123,6 @@ class Trainer:
 
     def ac_process(self):
         self.accuracy = self.network.accuracy(self.x_test,self.t_test)
-        self.list_accuracy.append(self.accuracy)
-            #HACK:損失関数の計算を含むので、必要な時だけ呼び出す。
-        if self.flag_list_loss:
-            self.list_loss.append(self.network.loss(self.x_batch,self.t_batch))
         if self.max_accuracy < self.accuracy:
             self.max_accuracy = self.accuracy
         if self.accuracy > self.ac_border:
@@ -149,6 +145,12 @@ class Trainer:
             elif self.log_ac_expr == 'num':
                 print("accuracy : ",self.accuracy)
 
+    def add_ac_to_list(self):
+        self.list_accuracy.append(self.accuracy)
+            #HACK:損失関数の計算を含むので、必要な時だけ呼び出す。
+        if self.flag_list_loss:
+            self.list_loss.append(self.network.loss(self.x_batch,self.t_batch))
+
     def _check_break_num_and_ct(self):
         if  self.tmp_ac < self.accuracy:
             self.tmp_ac = self.accuracy
@@ -157,7 +159,21 @@ class Trainer:
             if self.break_num < self.ct:
                 return True
         return False
-        
+
+    def get_range_for_value(self,value,size) -> list:
+        #与えられた数値の位の最小値、一つ上の位の最小値のリストを返す。
+        decimal_places = str(value).split('.')[-1]
+        ct = 0
+        for digit in decimal_places:
+            if digit == '0':
+                ct += 1
+            else:
+                break
+        current_min = round(round(value,ct+size)-round(0.1**(ct+size),ct+size)/2,ct+size+1)
+        if current_min < 0:
+            current_min = 0
+        current_max = round(round(value,ct+size)+round(0.1**(ct+size),ct+size)/2,ct+size+1)
+        return [current_min,current_max]
 
     def train_onece(self):
         self.__init_var()
@@ -166,10 +182,10 @@ class Trainer:
             self.set_batch_data()
             grads = self.network.gradient(self.x_batch,self.t_batch)
             self.optimizer.update(self.network.params,grads)
-
             if i % self.ac_div == 0:
                 self.ac_process()
                 self.log_process()
+                self.add_ac_to_list()
                 if self._check_break_num_and_ct():
                     break
 
