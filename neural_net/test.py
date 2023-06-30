@@ -5,7 +5,7 @@ from trainer import Trainer
 
 optimizer = SGD()
 network = MultiLayerNetExtend(input_size=784,\
-            hidden_size_list=[100,50,30],\
+            hidden_size_list=[100,30],\
             output_size=10,\
             activation='sigmoid',\
             weight_init_std='sigmoid',\
@@ -16,6 +16,9 @@ network = MultiLayerNetExtend(input_size=784,\
 
 trainer = Trainer(network,optimizer)
 
-(x_train, t_train),(x_test, t_test) = get_data()
-trainer.load_data(x_train,t_train,x_test,t_test)
-trainer.search_opt_lr(0.97)
+# (x_train, t_train),(x_test, t_test) = get_data()
+# trainer.load_data(x_train,t_train,x_test,t_test)
+# trainer.search_opt_lr(0.97)
+
+trainer.git_push_filepath("neural_net\\trainer.py")
+trainer.git_push_filepath("neural_net\\test.py")

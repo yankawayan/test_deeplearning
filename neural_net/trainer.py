@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import subprocess
 
 """
 Trainerクラス
@@ -8,6 +9,10 @@ Trainerクラス
     trainer.train(x_train,t_train)
     #データの中身について要検討
 """
+
+#TODO:実行途中を他で見られるようにする。(Gitなど)
+#TODO:探索効率が非常に悪いので、改良する。
+#TODO:関数単体で動作できるものは、外部のファイルに移動させ、名前を分かりやすくする。
 
 class Trainer:
     def __init__(self,network,optimizer):
@@ -44,7 +49,6 @@ class Trainer:
         self.flag_log = True
         self.flag_log_runtime = False
         
-
         self.flag_list_loss = False
         self.flag_use_weight_decay_lambda = True
 
@@ -199,6 +203,19 @@ class Trainer:
         current_max = round(round(value,ct+size)+round(0.1**(ct+size),ct+size)/2,ct+size+1)
         return current_min,current_max
 
+    def run_terminal(self,command):
+        command_list = command.split(" ")
+        result = subprocess.run(command_list)
+        output = result.stdout
+        error = result.stderr
+        if error != "":
+            print(error)
+
+    def git_push_filepath(self,filepath):
+        self.run_terminal("git add "+ filepath)
+        self.run_terminal('git commit -m \"update_'+filepath+'\"')
+        self.run_terminal("git push origin master")
+
     def train_onece(self):
         self.__init_var()
         self.__init_list_train_once()
@@ -214,7 +231,7 @@ class Trainer:
                     if self._check_break_num_and_ct():
                         break
 
-    # 探索　→　更新/リセット　の繰り返し
+    #HACK:探索効率が非常に悪い。辺りを付ける、もしくは、順に探索するのが良いかも。
     def search_opt_lr(self,desir_score):
         self.ac_border = desir_score
         self.__init_var_search_lr()
@@ -236,8 +253,11 @@ class Trainer:
 
             self.min_lr,self.max_lr = self._get_range_from_value(self.lr,size=self.lr_size_ct)
 
+            if max(self.max_ac_list) < self.ac_buff_tmp:
+                self.lr_size_ct = 5
             if self.lr_size_ct == 5:
-                self.lr_size_ct = 1
+                self.lr_size_ct = 0
+                self.ac_buff_tmp = 0
                 self.min_lr = self.default_lr[0]
                 self.max_lr = self.default_lr[1]
                 if self.flag_log:
@@ -245,5 +265,5 @@ class Trainer:
 
             if self.flag_log:
                 print("lr_range [",str(self.min_lr),", ",str(self.max_lr),"]")
-
+            self.ac_buff_tmp = self.lr
             self.lr_size_ct += 1
