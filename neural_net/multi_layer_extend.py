@@ -1,7 +1,7 @@
 import numpy as np
 from collections import OrderedDict
-from neural_net.layer import *
-from neural_net.function import numerical_gradient
+from layer import *
+from function import numerical_gradient
 
 #拡張版全結合による多層ニューラルネットワーク
 class MultiLayerNetExtend:
