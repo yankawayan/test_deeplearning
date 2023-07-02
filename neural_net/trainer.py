@@ -154,6 +154,9 @@ class Trainer:
             if self.flag_save:
                 self.save_binary(self.ac)
                 self.save_text(self.ac)
+                self.git_push_filepath(str(self.ac)+".binaryfile")
+                self.git_push_filepath(str(self.ac)+'.txt')
+
 
     def log_process(self):
         if self.flag_log_runtime:
