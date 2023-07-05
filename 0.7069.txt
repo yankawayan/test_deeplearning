@@ -1,0 +1,1 @@
+score: 0.7069, weight_decay: 2.5885938092757914e-08, lr: 0.0995558009830961, input_size: 784, hidden_size_list: [100, 100, 100], output_size: 10, activation: sigmoid, weight_init_std: sigmoid, use_dropout: False, dropout_ration: 0.5, use_batchnorm: True
